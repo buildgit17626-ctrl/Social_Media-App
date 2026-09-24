@@ -15,24 +15,27 @@ const connectDB = require("./config/db");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const http=require("http")
+const {Server} = require("socket.io")
 
 const postRoutes = require("./routes/postRoutes.js");
 const userRoutes = require("./routes/userRoutes.js");
+const commentRoutes = require("./routes/commentRoutes");
 
 const app = express();
+const server = http.createServer(app)
 
 connectDB();
 
 // Middleware
 app.use(express.json());
 
-app.use(
-  cors({
+const io = new Server(server, {
+  cors: {
     origin: "http://localhost:5173",
     credentials: true
-  })
-);
-
+  }
+});
 app.use(cookieParser());
 
 // Home route
@@ -69,9 +72,18 @@ app.post("/posts", (req, res) => {
   });
 });
 
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
 // API routes
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
+app.use('/api/comments', commentRoutes);
 
 // Invalid route handler
 app.use((req, res) => {
@@ -81,8 +93,6 @@ app.use((req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server working on http://localhost:${PORT}`);
+server.listen(process.env.PORT || 3000, () => {
+  console.log("Server running");
 });

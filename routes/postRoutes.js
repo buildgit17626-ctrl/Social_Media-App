@@ -15,7 +15,7 @@ const {
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Public routes
-router.get("/", getPosts);
+router.get("/", authMiddleware, getPosts);
 router.get("/:id", getPostById);
 
 // Protected routes
@@ -34,6 +34,6 @@ router.put(
 );
 router.delete("/:id", authMiddleware, deletePost);
 
-router.post('/:id/like', authMiddleware, likePost)
+router.put('/:id/like', authMiddleware, likePost)
 
 module.exports = router;

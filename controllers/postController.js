@@ -48,15 +48,32 @@ const createPost = async (req, res) => {
 };
 
 // GET ALL POSTS
+
 const getPosts = async (req, res) => {
   try {
+    const currentUserId = req.user.userId;
+
     const posts = await Post.find()
       .populate("author", "username email")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(posts);
+    const updatedPosts = posts.map((post) => {
+      const likes = post.likes || [];
+
+      const liked = likes.some(
+        (id) => id.toString() === currentUserId.toString()
+      );
+
+      return {
+        ...post.toObject(),
+        likesCount: likes.length,
+        liked: liked
+      };
+    });
+
+    return res.status(200).json(updatedPosts);
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message
     });
   }
@@ -184,23 +201,33 @@ const likePost = async (req, res) => {
 
     const userId = req.user.userId;
 
-    const alreadyLiked = post.likes.some(
+    if (!userId) {
+      return res.status(401).json({
+        message: "User ID missing"
+      });
+    }
+
+    // If likes does not exist, use an empty array
+    const likes = post.likes || [];
+
+    const alreadyLiked = likes.some(
       (id) => id.toString() === userId.toString()
     );
 
     if (alreadyLiked) {
       // Remove the user's like
-      post.likes = post.likes.filter(
+      post.likes = likes.filter(
         (id) => id.toString() !== userId.toString()
       );
     } else {
       // Add the user's like
+      post.likes = likes;
       post.likes.push(userId);
     }
 
     await post.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       message: alreadyLiked
         ? "Post unliked successfully"
         : "Post liked successfully",
@@ -208,11 +235,14 @@ const likePost = async (req, res) => {
       liked: !alreadyLiked
     });
   } catch (error) {
-    res.status(500).json({
+    console.log("LIKE ERROR:", error);
+
+    return res.status(500).json({
       message: error.message
     });
   }
 };
+
 module.exports = {
   createPost,
   getPosts,

@@ -199,48 +199,95 @@ const followUser = async (req,res)=>{
 };
 
 //Unfollow 
-const unfollowUser = async (req,res)=>{
-  try{
-     const currentUserId = req.user.userId 
-     const targetUserId = req.params.id 
+// UNFOLLOW
+const unfollowUser = async (req, res) => {
+  try {
+    const currentUserId = req.user.userId;
+    const targetUserId = req.params.id;
 
-     if(currentUserId===targetUserId)
-     {
-       return res.status(400).json({
-        message: "You cannot unfollow yourself"
-      });
-     }
-     
-     if(!currentUserId || !targetUserId)
-     {
+    if (!currentUserId || !targetUserId) {
       return res.status(400).json({
         message: "User is missing"
       });
-     }
+    }
 
-     const currentUser = await User.findById(currentUserId)
-     const targetUser= await User.findById(targetUserId)
+    if (currentUserId.toString() === targetUserId.toString()) {
+      return res.status(400).json({
+        message: "You cannot unfollow yourself"
+      });
+    }
 
-     if(!currentUser.following.includes(targetUserId))
-     {
+    const currentUser = await User.findById(currentUserId);
+    const targetUser = await User.findById(targetUserId);
+
+    if (!currentUser || !targetUser) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const isFollowing = currentUser.following.some(
+      (id) => id.toString() === targetUserId.toString()
+    );
+
+    if (!isFollowing) {
       return res.status(400).json({
         message: "You are already not following this user"
       });
-     }
-     
-     currentUser.following=currentUser.following.filter((id)=>{
-        targetUserId!==id.toString()
-     })
+    }
 
-     targetUser.followers=targetUser.followers.filter((id)=>{
-       currentUserId!==id.toString() 
-     })
+    currentUser.following = currentUser.following.filter(
+      (id) => id.toString() !== targetUserId.toString()
+    );
 
-     await currentUser.save()
-     await targetUser.save()
+    targetUser.followers = targetUser.followers.filter(
+      (id) => id.toString() !== currentUserId.toString()
+    );
+
+    await currentUser.save();
+    await targetUser.save();
 
     return res.status(200).json({
       message: "User unfollowed successfully"
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message
+    });
+  }
+};
+
+// GET USER PROFILE
+const getUserProfile = async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const currentUserId = req.user.userId;
+
+    const user = await User.findById(targetUserId)
+      .select("-password")
+      .populate("followers", "username")
+      .populate("following", "username");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const isFollowing = user.followers.some(
+      (follower) =>
+        follower._id.toString() === currentUserId.toString()
+    );
+
+    return res.status(200).json({
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        followersCount: user.followers.length,
+        followingCount: user.following.length,
+        isFollowing: isFollowing
+      }
     });
   } catch (error) {
     return res.status(500).json({
@@ -257,4 +304,5 @@ module.exports = {
   logoutUser,
   followUser,
   unfollowUser,
+  getUserProfile,
 };
