@@ -1,19 +1,39 @@
-const express=require("express")
+const express = require("express");
 
-const router=express.Router()
+const router = express.Router();
+const upload = require("../middlewares/upload");
 
 const {
   createPost,
   getPosts,
   getPostById,
   updatePost,
-  deletePost
+  deletePost,
+  likePost
 } = require("../controllers/postController");
 
-router.post('/', createPost);
-router.get('/',getPosts);
-router.get('/:id',getPostById)
-router.put('/:id',updatePost)
-router.delete('/:id',deletePost)
+const authMiddleware = require("../middlewares/authMiddleware");
 
-module.exports=router;
+// Public routes
+router.get("/", getPosts);
+router.get("/:id", getPostById);
+
+// Protected routes
+router.post(
+  "/",
+  authMiddleware,
+  upload.single("image"),
+  createPost
+);
+
+router.put(
+  "/:id",
+  authMiddleware,
+  upload.single("image"),
+  updatePost
+);
+router.delete("/:id", authMiddleware, deletePost);
+
+router.post('/:id/like', authMiddleware, likePost)
+
+module.exports = router;

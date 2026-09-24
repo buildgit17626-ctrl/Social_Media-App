@@ -4,24 +4,35 @@ const postSchema = new mongoose.Schema(
   {
     content: {
       type: String,
-      required: true,
-      trim: true
+      default: ""
     },
+
     author: {
-      type: String,
-      required: true,
-      trim: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     },
-    likes: {
-      type: Number,
-      default: 0
-    }
+
+    image: {
+      type: String,
+      default: null
+    },
+
+    imagePublicId: {
+      type: String,
+      default: null
+    },
+
+    likes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      }
+    ]
   },
   {
     timestamps: true
   }
 );
 
-const Post = mongoose.model("Post", postSchema);
-
-module.exports = Post;
+module.exports = mongoose.model("Post", postSchema);
